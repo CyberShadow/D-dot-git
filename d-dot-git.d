@@ -75,11 +75,25 @@ void main()
 		f.writeln("commit refs/heads/master");
 		f.writefln("author %s", m.commit.author);
 		f.writefln("committer %s", m.commit.committer);
+
 		auto message = "%s: %s".format(m.repo, m.commit.message.join("\n"));
 		f.writefln("data %s", message.length);
 		f.writeln(message);
+
 		foreach (name, hash; state)
 			f.writefln("M 160000 %s %s", hash.toString(), name);
+
+		f.writeln("M 644 inline .gitmodules");
+		f.writeln("data <<DELIMITER");
+		foreach (name, hash; state)
+		{
+			f.writefln("[submodule \"%s\"]", name);
+			f.writefln("\tpath = %s", name);
+			f.writefln("\turl = https://github.com/D-Programming-Language/%s", name);
+		}
+		f.writeln();
+		f.writeln("DELIMITER");
+
 		f.writeln();
 	}
 	f.close();
