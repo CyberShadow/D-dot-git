@@ -1,0 +1,8 @@
+# Temporary files
+*.exe
+
+# Binaries
+d-dot-git
+
+# Output
+/result/
