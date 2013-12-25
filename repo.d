@@ -43,6 +43,7 @@ class Repository
 		Commit*[Hash] commits;
 		uint numCommits = 0;
 		Hash lastCommit;
+		Hash[string] tags;
 	}
 
 	History getHistory(string branch)
@@ -95,6 +96,14 @@ class Repository
 			else
 				//enforce(false, "Unknown line in git log: " ~ line);
 				commit.message[$-1] ~= line;
+		}
+
+		foreach (line; gitQuery([`show-ref`, `--tags`]).splitLines())
+		{
+			auto h = line[0..40].toCommitHash();
+			auto tag = line[51..$];
+			if (h in history.commits)
+				history.tags[tag] = h;
 		}
 
 		return history;

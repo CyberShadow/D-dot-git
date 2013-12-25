@@ -35,25 +35,33 @@ void main()
 		Commit* commit;
 	}
 	Merge[][string] histories;
+	Commit*[string] tags;
 
 	foreach (name, repo; repos)
 	{
 		auto history = repo.getHistory("origin/master");
 		Merge[] merges;
 		Commit* c = history.commits[history.lastCommit];
-		merges ~= Merge(name, c);
-		while (c.parents.length)
+		do
 		{
-			c = c.parents[0];
 			merges ~= Merge(name, c);
-		}
+			c = c.parents.length ? c.parents[0] : null;
+		} while (c);
 		histories[name] = merges;
 		//writefln("%d linear history commits in %s", linearHistory.length, name);
+
+		foreach (tag, hash; history.tags)
+			if (tag !in tags || tags[tag].time < history.commits[hash].time)
+				tags[tag] = history.commits[hash];
 	}
 
 	auto allHistory = histories.values.join;
 	allHistory.sort!`a.commit.time > b.commit.time`();
 	allHistory.reverse;
+
+	string[][Hash] tagPoints;
+	foreach (tag, commit; tags)
+		tagPoints[commit.hash] ~= tag;
 
 	if ("result".exists)
 	{
@@ -74,11 +82,13 @@ void main()
 	f.writeln("reset refs/heads/master");
 
 	Hash[string] state;
-	foreach (m; allHistory)
+	bool[string] emittedTags;
+	foreach (n, m; allHistory)
 	{
 		state[m.repo] = m.commit.hash;
 
 		f.writeln("commit refs/heads/master");
+		f.writefln("mark :%d", n+1);
 		f.writefln("author %s", m.commit.author);
 		f.writefln("committer %s", m.commit.committer);
 
@@ -112,8 +122,13 @@ void main()
 			f.writefln("\turl = https://github.com/D-Programming-Language/%s", name);
 		}
 		f.writeln("DELIMITER");
-
 		f.writeln();
+
+		foreach (tag; tagPoints.get(m.commit.hash, null))
+		{
+			f.writefln("reset refs/tags/%s", tag);
+			f.writefln("from :%d", n+1);
+		}
 	}
 	f.close();
 	auto status = pipes.pid.wait();
