@@ -120,6 +120,9 @@ void main()
 	enforce(status == 0, "git-fast-import failed with status %d".format(status));
 
 	repo.gitRun("reset", "--hard", "master");
-	repo.gitRun("remote", "add", "origin", "git@github.com:CyberShadow-D/D.git");
-	repo.gitRun("push", "--force", "--set-upstream", "origin", "master");
+	debug {} else
+	{
+		repo.gitRun("remote", "add", "origin", "git@github.com:CyberShadow-D/D.git");
+		repo.gitRun("push", "--force", "--set-upstream", "origin", "master");
+	}
 }
