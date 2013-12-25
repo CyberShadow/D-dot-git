@@ -45,7 +45,7 @@ class Repository
 		Hash lastCommit;
 	}
 
-	History getHistory()
+	History getHistory(string branch)
 	{
 		History history;
 
@@ -57,7 +57,7 @@ class Repository
 
 		Commit* commit;
 
-		foreach (line; gitQuery([`log`, `master`, `--pretty=raw`]).splitLines())
+		foreach (line; gitQuery([`log`, branch, `--pretty=raw`]).splitLines())
 		{
 			if (!line.length)
 				continue;

@@ -38,7 +38,7 @@ void main()
 
 	foreach (name, repo; repos)
 	{
-		auto history = repo.getHistory();
+		auto history = repo.getHistory("origin/master");
 		Merge[] merges;
 		Commit* c = history.commits[history.lastCommit];
 		merges ~= Merge(name, c);
