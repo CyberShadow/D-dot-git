@@ -7,6 +7,7 @@ import std.file;
 import std.path;
 import std.process;
 import std.range;
+import std.regex;
 import std.stdio;
 import std.string;
 import std.parallelism;
@@ -81,7 +82,21 @@ void main()
 		f.writefln("author %s", m.commit.author);
 		f.writefln("committer %s", m.commit.committer);
 
-		auto message = "%s: %s".format(m.repo, m.commit.message.join("\n"));
+		string[] messageLines = m.commit.message;
+		if (messageLines.length)
+		{
+			// Add a link to the pull request
+			auto pullMatch = messageLines[0].match(`^Merge pull request #(\d+) from `);
+			if (pullMatch)
+			{
+				size_t p;
+				while (p < messageLines.length && messageLines[p].length)
+					p++;
+				messageLines = messageLines[0..p] ~ ["", "https://github.com/D-Programming-Language/%s/pull/%s".format(m.repo, pullMatch.captures[1])] ~ messageLines[p..$];
+			}
+		}
+
+		auto message = "%s: %s".format(m.repo, messageLines.join("\n"));
 		f.writefln("data %s", message.length);
 		f.writeln(message);
 
