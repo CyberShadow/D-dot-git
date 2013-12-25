@@ -95,7 +95,6 @@ void main()
 			f.writefln("\tpath = %s", name);
 			f.writefln("\turl = https://github.com/D-Programming-Language/%s", name);
 		}
-		f.writeln();
 		f.writeln("DELIMITER");
 
 		f.writeln();
