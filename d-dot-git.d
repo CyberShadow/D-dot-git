@@ -2,6 +2,7 @@ module d_dot_git;
 
 import std.algorithm;
 import std.array;
+import std.exception;
 import std.file;
 import std.path;
 import std.process;
@@ -100,7 +101,8 @@ void main()
 		f.writeln();
 	}
 	f.close();
-	pipes.pid.wait();
+	auto status = pipes.pid.wait();
+	enforce(status == 0, "git-fast-import failed with status %d".format(status));
 
 	repo.gitRun("reset", "--hard", "master");
 }
