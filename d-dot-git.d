@@ -54,8 +54,12 @@ void main()
 	allHistory.reverse;
 
 	if ("result".exists)
-		//rmdirRecurse("result");
-		execute(["rm", "-rf", "result"]);
+	{
+		version (Windows)
+			execute(["rm", "-rf", "result"]); // Git creates "read-only" files
+		else
+			rmdirRecurse("result");
+	}
 	mkdir("result");
 
 	auto repo = new Repository("result");
