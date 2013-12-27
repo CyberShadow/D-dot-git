@@ -137,7 +137,7 @@ void main()
 	repo.gitRun("reset", "--hard", "master");
 	debug {} else
 	{
-		repo.gitRun("remote", "add", "origin", "git@github.com:CyberShadow-D/D.git");
+		repo.gitRun("remote", "add", "origin", "ssh://git@bitbucket.org/cybershadow/d.git");
 		repo.gitRun("push", "--force", "--tags", "--set-upstream", "origin", "master");
 	}
 }
