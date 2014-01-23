@@ -37,6 +37,8 @@ void main()
 	Merge[][string] histories;
 	Commit*[string] tags;
 
+	auto reReverseMerge = regex(`^Merge branch 'master' of github`);
+
 	foreach (name, repo; repos)
 	{
 		auto history = repo.getHistory("origin/master");
@@ -45,7 +47,13 @@ void main()
 		do
 		{
 			merges ~= Merge(name, c);
-			c = c.parents.length ? c.parents[0] : null;
+			if (c.message.length && c.message[0].match(reReverseMerge))
+			{
+				enforce(c.parents.length == 2);
+				c = c.parents[1];
+			}
+			else
+				c = c.parents.length ? c.parents[0] : null;
 		} while (c);
 		histories[name] = merges;
 		//writefln("%d linear history commits in %s", linearHistory.length, name);
