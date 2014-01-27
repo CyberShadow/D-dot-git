@@ -64,7 +64,7 @@ void main()
 	}
 
 	auto allHistory = histories.values.join;
-	allHistory.sort!`a.commit.time > b.commit.time`();
+	allHistory.sort!(`a.commit.time > b.commit.time`, SwapStrategy.stable)();
 	allHistory.reverse;
 
 	string[][Hash] tagPoints;
