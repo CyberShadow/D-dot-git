@@ -43,7 +43,8 @@ class Repository
 		Commit*[Hash] commits;
 		uint numCommits = 0;
 		Hash lastCommit;
-		Hash[string] tags;
+		struct Tag { Hash tag, commit; }
+		Tag[string] tags;
 	}
 
 	History getHistory(string branch)
@@ -98,12 +99,26 @@ class Repository
 				commit.message[$-1] ~= line;
 		}
 
-		foreach (line; gitQuery([`show-ref`, `--tags`]).splitLines())
+		foreach (line; gitQuery([`show-ref`, `--tags`, `--dereference`]).splitLines())
 		{
 			auto h = line[0..40].toCommitHash();
-			auto tag = line[51..$];
 			if (h in history.commits)
-				history.tags[tag] = h;
+			{
+				auto tag = line[51..$];
+				bool dereferenced;
+				if (tag.endsWith("^{}"))
+				{
+					tag = tag[0..$-3];
+					dereferenced = true;
+				}
+				auto ptag = tag in history.tags;
+				if (!ptag)
+				{
+					history.tags[tag] = History.Tag();
+					ptag = tag in history.tags;
+				}
+				*(dereferenced ? &ptag.commit : &ptag.tag) = h;
+			}
 		}
 
 		return history;

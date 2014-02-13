@@ -58,9 +58,11 @@ void main()
 		histories[name] = merges;
 		//writefln("%d linear history commits in %s", linearHistory.length, name);
 
-		foreach (tag, hash; history.tags)
-			if (tag !in tags || tags[tag].time < history.commits[hash].time)
-				tags[tag] = history.commits[hash];
+		foreach (tag, hashes; history.tags)
+			foreach (hash; [hashes.commit, hashes.tag])
+				if (hash != Hash.init)
+					if (tag !in tags || tags[tag].time < history.commits[hash].time)
+						tags[tag] = history.commits[hash];
 	}
 
 	auto allHistory = histories.values.join;
