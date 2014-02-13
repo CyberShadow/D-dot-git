@@ -1,5 +1,7 @@
 # Temporary files
 *.exe
+*.ilk
+*.pdb
 
 # Binaries
 d-dot-git
