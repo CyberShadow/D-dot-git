@@ -18,9 +18,12 @@ class Repository
 	this(string path)
 	{
 		enforce(path.exists, "Repository path does not exist");
-		//enforce(path.buildPath(".git").exists, "Repository has no .git");
+		auto dotGit = path.buildPath(".git");
+		if (dotGit.exists && dotGit.isFile)
+			dotGit = path.buildPath(dotGit.readText().strip()[8..$]);
+		//path = path.replace(`\`, `/`);
 		this.path = path;
-		this.argsPrefix = [`git`, `--work-tree=` ~ path, `--git-dir=` ~ path.buildPath(".git")];
+		this.argsPrefix = [`git`, `--work-tree=` ~ path, `--git-dir=` ~ dotGit];
 	}
 
 	void gitRun(string[] args...)
@@ -42,12 +45,10 @@ class Repository
 	{
 		Commit*[Hash] commits;
 		uint numCommits = 0;
-		Hash lastCommit;
-		struct Tag { Hash tag, commit; }
-		Tag[string] tags;
+		Hash[string] refs;
 	}
 
-	History getHistory(string branch)
+	History getHistory()
 	{
 		History history;
 
@@ -59,7 +60,7 @@ class Repository
 
 		Commit* commit;
 
-		foreach (line; gitQuery([`log`, branch, `--pretty=raw`]).splitLines())
+		foreach (line; gitQuery([`log`, `--all`, `--pretty=raw`]).splitLines())
 		{
 			if (!line.length)
 				continue;
@@ -67,8 +68,6 @@ class Repository
 			if (line.startsWith("commit "))
 			{
 				auto hash = line[7..$].toCommitHash();
-				if (!history.numCommits)
-					history.lastCommit = hash;
 				commit = getCommit(hash);
 			}
 			else
@@ -99,26 +98,11 @@ class Repository
 				commit.message[$-1] ~= line;
 		}
 
-		foreach (line; gitQuery([`show-ref`, `--tags`, `--dereference`]).splitLines())
+		foreach (line; gitQuery([`show-ref`, `--dereference`]).splitLines())
 		{
 			auto h = line[0..40].toCommitHash();
 			if (h in history.commits)
-			{
-				auto tag = line[51..$];
-				bool dereferenced;
-				if (tag.endsWith("^{}"))
-				{
-					tag = tag[0..$-3];
-					dereferenced = true;
-				}
-				auto ptag = tag in history.tags;
-				if (!ptag)
-				{
-					history.tags[tag] = History.Tag();
-					ptag = tag in history.tags;
-				}
-				*(dereferenced ? &ptag.commit : &ptag.tag) = h;
-			}
+				history.refs[line[41..$]] = h;
 		}
 
 		return history;

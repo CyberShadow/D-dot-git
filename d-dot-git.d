@@ -2,6 +2,7 @@ module d_dot_git;
 
 import std.algorithm;
 import std.array;
+import std.conv;
 import std.exception;
 import std.file;
 import std.path;
@@ -29,49 +30,27 @@ void main()
 		stderr.writefln("Done fetching %s.", repo.path);
 	}
 
-	static struct Merge
-	{
-		string repo;
-		Commit* commit;
-	}
-	Merge[][string] histories;
-	Commit*[string] tags;
+	Repository.History[string] histories;
+	Hash[string][string] refs; // refs[refName][repoName]
 
-	auto reReverseMerge = regex(`^Merge branch 'master' of github`);
-
-	foreach (name, repo; repos)
+	foreach (repoName, repo; repos)
 	{
-		auto history = repo.getHistory("origin/master");
-		Merge[] merges;
-		Commit* c = history.commits[history.lastCommit];
-		do
-		{
-			merges ~= Merge(name, c);
-			if (c.message.length && c.message[0].match(reReverseMerge))
-			{
-				enforce(c.parents.length == 2);
-				c = c.parents[1];
-			}
+		histories[repoName] = repo.getHistory();
+		foreach (name, hash; histories[repoName].refs)
+			if (name.startsWith("refs/heads/"))
+				continue;
 			else
-				c = c.parents.length ? c.parents[0] : null;
-		} while (c);
-		histories[name] = merges;
-		//writefln("%d linear history commits in %s", linearHistory.length, name);
-
-		foreach (tag, hashes; history.tags)
-			foreach (hash; [hashes.commit, hashes.tag])
-				if (hash != Hash.init)
-					if (tag !in tags || tags[tag].time < history.commits[hash].time)
-						tags[tag] = history.commits[hash];
+			if (name == "refs/remotes/origin/HEAD")
+				continue;
+			else
+			if (name.startsWith("refs/remotes/origin/"))
+				refs[name.replace("refs/remotes/origin/", "refs/heads/")][repoName] = hash;
+			else
+			if (name.startsWith("refs/tags/"))
+				refs[name.replace("^{}", "")][repoName] = hash;
+			else
+				throw new Exception("Unknown ref kind: " ~ name);
 	}
-
-	auto allHistory = histories.values.join;
-	allHistory.sort!(`a.commit.time > b.commit.time`, SwapStrategy.stable)();
-	allHistory.reverse;
-
-	string[][Hash] tagPoints;
-	foreach (tag, commit; tags)
-		tagPoints[commit.hash] ~= tag;
 
 	if ("result".exists)
 	{
@@ -83,64 +62,142 @@ void main()
 	mkdir("result");
 
 	auto repo = new Repository("result");
-	repo.gitRun("init", ".");
 
-	//auto f = File("result/fast-import-data.txt", "wb");
-	auto pipes = pipeProcess(repo.argsPrefix ~ ["fast-import"], Redirect.stdin);
-	auto f = pipes.stdin;
-
-	f.writeln("reset refs/heads/master");
-
-	Hash[string] state;
-	bool[string] emittedTags;
-	foreach (n, m; allHistory)
+	bool pretend = false;
+	File f;
+	ProcessPipes pipes;
+	if (pretend)
+		f = File("result/fast-import-data.txt", "wb");
+	else
 	{
-		state[m.repo] = m.commit.hash;
-
-		f.writeln("commit refs/heads/master");
-		f.writefln("mark :%d", n+1);
-		f.writefln("author %s", m.commit.author);
-		f.writefln("committer %s", m.commit.committer);
-
-		string[] messageLines = m.commit.message;
-		if (messageLines.length)
-		{
-			// Add a link to the pull request
-			auto pullMatch = messageLines[0].match(`^Merge pull request #(\d+) from `);
-			if (pullMatch)
-			{
-				size_t p;
-				while (p < messageLines.length && messageLines[p].length)
-					p++;
-				messageLines = messageLines[0..p] ~ ["", "https://github.com/D-Programming-Language/%s/pull/%s".format(m.repo, pullMatch.captures[1])] ~ messageLines[p..$];
-			}
-		}
-
-		auto message = "%s: %s".format(m.repo, messageLines.join("\n"));
-		f.writefln("data %s", message.length);
-		f.writeln(message);
-
-		foreach (name, hash; state)
-			f.writefln("M 160000 %s %s", hash.toString(), name);
-
-		f.writeln("M 644 inline .gitmodules");
-		f.writeln("data <<DELIMITER");
-		foreach (name, hash; state)
-		{
-			f.writefln("[submodule \"%s\"]", name);
-			f.writefln("\tpath = %s", name);
-			f.writefln("\turl = git://github.com/D-Programming-Language/%s", name);
-		}
-		f.writeln("DELIMITER");
-		f.writeln();
-
-		foreach (tag; tagPoints.get(m.commit.hash, null))
-		{
-			f.writefln("reset refs/tags/%s", tag);
-			f.writefln("from :%d", n+1);
-		}
+		repo.gitRun("init", ".");
+		pipes = pipeProcess(repo.argsPrefix ~ ["fast-import"], Redirect.stdin);
+		f = pipes.stdin;
 	}
+
+	auto reReverseMerge = regex(`^Merge branch 'master' of github`);
+
+	int[Hash[]] marks;
+	int currentMark = 0;
+	marks[null] = currentMark;
+
+	foreach (refName, refHashes; refs)
+	{
+		static struct Merge
+		{
+			string repo;
+			Commit* commit;
+		}
+		Merge[][string] repoMerges;
+		Commit*[string] tags;
+
+		// If a component doesn't have a branch, include their "master".
+		// The alternative would be to create a whole new history
+		// without that component, which would not be very useful.
+		// However, we only need to include their history up to the latest
+		// point in the tracked ref.
+
+		auto latestTime = zip(refHashes.keys, refHashes.values)
+			.map!(z => histories[z[0]].commits[z[1]].time)
+			.reduce!max
+		;
+
+		foreach (repoName; repos.keys)
+			if (repoName !in refHashes)
+				refHashes[repoName] = refs["refs/heads/master"][repoName];
+
+		foreach (repoName, refHash; refHashes)
+		{
+			auto history = histories[repoName];
+			Merge[] merges;
+			Commit* c = history.commits[refHash];
+			do
+			{
+				merges ~= Merge(repoName, c);
+				if (c.message.length && c.message[0].match(reReverseMerge))
+				{
+					enforce(c.parents.length == 2);
+					c = c.parents[1];
+				}
+				else
+					c = c.parents.length ? c.parents[0] : null;
+			} while (c);
+			repoMerges[repoName] = merges;
+			//writefln("%d linear history commits in %s", linearHistory.length, repoName);
+		}
+
+		auto allMerges = repoMerges.values.join;
+		allMerges.sort!(`a.commit.time > b.commit.time`, SwapStrategy.stable)();
+		allMerges.reverse;
+		auto end = allMerges.countUntil!(m => m.commit.time > latestTime);
+		if (end >= 0)
+			allMerges = allMerges[0..end];
+
+		f.writefln("reset %s", refName);
+
+		Hash[string] state;
+		foreach (m; allMerges)
+		{
+			auto parentMark = marks[state.values.sort];
+			state[m.repo] = m.commit.hash;
+
+			if (state.values.sort in marks)
+				continue;
+
+			currentMark++;
+			marks[state.values.sort.idup] = currentMark;
+
+			f.writefln("commit %s", refName);
+			f.writefln("mark :%d", currentMark);
+			f.writefln("author %s", m.commit.author);
+			f.writefln("committer %s", m.commit.committer);
+
+			string[] messageLines = m.commit.message;
+			if (messageLines.length)
+			{
+				// Add a link to the pull request
+				auto pullMatch = messageLines[0].match(`^Merge pull request #(\d+) from `);
+				if (pullMatch)
+				{
+					size_t p;
+					while (p < messageLines.length && messageLines[p].length)
+						p++;
+					messageLines = messageLines[0..p] ~ ["", "https://github.com/D-Programming-Language/%s/pull/%s".format(m.repo, pullMatch.captures[1])] ~ messageLines[p..$];
+				}
+			}
+
+			auto message = "%s: %s".format(m.repo, messageLines.join("\n"));
+			f.writefln("data %s", message.length);
+			f.writeln(message);
+
+			if (parentMark && parentMark != currentMark-1)
+				f.writefln("from :%d", parentMark);
+
+			foreach (name, hash; state)
+				f.writefln("M 160000 %s %s", hash.toString(), name);
+
+			f.writeln("M 644 inline .gitmodules");
+			f.writeln("data <<DELIMITER");
+			foreach (name, hash; state)
+			{
+				f.writefln("[submodule \"%s\"]", name);
+				f.writefln("\tpath = %s", name);
+				f.writefln("\turl = git://github.com/D-Programming-Language/%s", name);
+			}
+			f.writeln("DELIMITER");
+			f.writeln();
+		}
+
+		f.writefln("reset %s", refName);
+		f.writefln("from :%d", marks[state.values.sort]);
+
+		currentMark++; // force explicit "from" for new refs
+	}
+
 	f.close();
+	if (pretend)
+		return;
+
 	auto status = pipes.pid.wait();
 	enforce(status == 0, "git-fast-import failed with status %d".format(status));
 
@@ -148,6 +205,6 @@ void main()
 	debug {} else
 	{
 		repo.gitRun("remote", "add", "origin", "ssh://git@bitbucket.org/cybershadow/d.git");
-		repo.gitRun("push", "--force", "--tags", "--set-upstream", "origin", "master");
+		repo.gitRun("push", "--mirror", "origin");
 	}
 }
