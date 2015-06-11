@@ -4,7 +4,11 @@
 *.pdb
 
 # Binaries
-d-dot-git
+/d-dot-git
 
 # Output
 /result/
+
+# Logs
+/d-dot-git.log
+/logs/
