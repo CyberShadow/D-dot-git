@@ -1,3 +1,6 @@
+[submodule "ae"]
+	path = ae
+	url = git://github.com/CyberShadow/ae.git
 [submodule "dlang.org"]
 	path = repos/dlang.org
 	url = https://github.com/D-Programming-Language/dlang.org
