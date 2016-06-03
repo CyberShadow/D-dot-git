@@ -5,6 +5,7 @@
 
 # Binaries
 /d-dot-git
+/daemon
 
 # Output
 /result/
