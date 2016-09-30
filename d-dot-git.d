@@ -179,7 +179,7 @@ void main()
 
 			f.writeln("M 644 inline .gitmodules");
 			f.writeln("data <<DELIMITER");
-			foreach (name, hash; state)
+			foreach (name; state.keys.sort)
 			{
 				f.writefln("[submodule \"%s\"]", name);
 				f.writefln("\tpath = %s", name);
