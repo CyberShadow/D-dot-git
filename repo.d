@@ -60,7 +60,7 @@ class Repository
 
 		Commit* commit;
 
-		foreach (line; gitQuery([`log`, `--all`, `--pretty=raw`]).splitLines())
+		foreach (line; gitQuery([`log`, `--all`, `--pretty=raw`]).split("\n"))
 		{
 			if (!line.length)
 				continue;
@@ -94,8 +94,14 @@ class Repository
 			if (line.startsWith("    "))
 				commit.message ~= line[4..$];
 			else
-				//enforce(false, "Unknown line in git log: " ~ line);
-				commit.message[$-1] ~= line;
+			if (line.startsWith("gpgsig "))
+				continue;
+			else
+			if (line.startsWith(" "))
+				continue; // continuation of gpgsig
+			else
+				enforce(false, "Unknown line in git log: %(%s%)".format([line]));
+			//	commit.message[$-1] ~= line;
 		}
 
 		foreach (line; gitQuery([`show-ref`, `--dereference`]).splitLines())
