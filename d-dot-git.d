@@ -35,6 +35,7 @@ void main()
 
 	foreach (repoName, repo; repos)
 	{
+		stderr.writefln("Reading %s...", repo.path);
 		histories[repoName] = repo.getHistory();
 		foreach (name, hash; histories[repoName].refs)
 			if (name.startsWith("refs/heads/"))
