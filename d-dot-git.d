@@ -129,7 +129,7 @@ void main()
 
 		auto allMerges = repoMerges.values.join;
 		allMerges.sort!(`a.commit.time > b.commit.time`, SwapStrategy.stable)();
-		allMerges.reverse;
+		allMerges.reverse();
 		auto end = allMerges.countUntil!(m => m.commit.time > latestTime);
 		if (end >= 0)
 			allMerges = allMerges[0..end];
@@ -139,14 +139,14 @@ void main()
 		Hash[string] state;
 		foreach (m; allMerges)
 		{
-			auto parentMark = marks[state.values.sort];
+			auto parentMark = marks[state.values.sort().release];
 			state[m.repo] = m.commit.hash;
 
-			if (state.values.sort in marks)
+			if (state.values.sort().release in marks)
 				continue;
 
 			currentMark++;
-			marks[state.values.sort.idup] = currentMark;
+			marks[state.values.sort().release.idup] = currentMark;
 
 			f.writefln("commit %s", refName);
 			f.writefln("mark :%d", currentMark);
@@ -179,7 +179,7 @@ void main()
 
 			f.writeln("M 644 inline .gitmodules");
 			f.writeln("data <<DELIMITER");
-			foreach (name; state.keys.sort)
+			foreach (name; state.keys.sort())
 			{
 				f.writefln("[submodule \"%s\"]", name);
 				f.writefln("\tpath = %s", name);
@@ -190,7 +190,7 @@ void main()
 		}
 
 		f.writefln("reset %s", refName);
-		f.writefln("from :%d", marks[state.values.sort]);
+		f.writefln("from :%d", marks[state.values.sort().release]);
 
 		currentMark++; // force explicit "from" for new refs
 	}
