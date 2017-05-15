@@ -78,12 +78,13 @@ void main()
 
 	auto reReverseMerge = regex(`^Merge branch 'master' of github`);
 
-	int[Hash[]] marks;
 	int currentMark = 0;
-	marks[null] = currentMark;
 
 	foreach (refName, refHashes; refs)
 	{
+		int[Hash[]] marks;
+		marks[null] = currentMark;
+
 		static struct Merge
 		{
 			string repo;
