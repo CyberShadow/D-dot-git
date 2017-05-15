@@ -13,6 +13,8 @@ import std.stdio;
 import std.string;
 import std.parallelism;
 
+import ae.utils.regex;
+
 import repo;
 
 Repository[string] repos;
@@ -143,11 +145,12 @@ void main()
 			auto parentMark = marks[state.values.sort().release];
 			state[m.repo] = m.commit.hash;
 
-			if (state.values.sort().release in marks)
+			auto hashes = state.values.sort().release.assumeUnique();
+			if (hashes in marks)
 				continue;
 
 			currentMark++;
-			marks[state.values.sort().release.idup] = currentMark;
+			marks[hashes] = currentMark;
 
 			f.writefln("commit %s", refName);
 			f.writefln("mark :%d", currentMark);
@@ -158,7 +161,7 @@ void main()
 			if (messageLines.length)
 			{
 				// Add a link to the pull request
-				auto pullMatch = messageLines[0].match(`^Merge pull request #(\d+) from `);
+				auto pullMatch = messageLines[0].match(re!`^Merge pull request #(\d+) from `);
 				if (pullMatch)
 				{
 					size_t p;

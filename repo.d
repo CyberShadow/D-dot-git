@@ -10,6 +10,8 @@ import std.process;
 import std.range;
 import std.string;
 
+import ae.utils.text;
+
 class Repository
 {
 	string path;
@@ -136,9 +138,12 @@ Hash toCommitHash(string hash)
 	return result;
 }
 
-string toString(ref Hash hash)
+char[40] toString(ref Hash hash)
 {
-	return format("%(%02x%)", hash[]);
+	//return format("%(%02x%)", hash[]);
+	char[40] result;
+	hash[].toLowerHex(result);
+	return result;
 }
 
 unittest
