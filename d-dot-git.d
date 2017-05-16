@@ -129,8 +129,11 @@ void main()
 				if (c.parents.length == 2 && subject.startsWith("Merge pull request #"))
 					c = c.parents[0];
 				else
-				if (c.parents.length == 2 && subject == "Merge remote-tracking branch 'upstream/master' into " ~ refName.split("/")[$-1])
-					c = c.parents[0];
+				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/master' into "))
+				{
+					bool ourBranch = subject == refName.split("/")[$-1];
+					c = c.parents[ourBranch ? 0 : 1];
+				}
 				else
 				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/"))
 				{
