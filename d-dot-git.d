@@ -134,7 +134,8 @@ void main()
 				{
 					enforce(c.parents.length == 2, "Octopus merge");
 
-					static Commit* commonParent(Commit*[] commits) pure
+					// Approximately equivalent to git-merge-base
+					static Commit*[] commonParents(Commit*[] commits) pure
 					{
 						bool[Hash][] seen;
 						seen.length = commits.length;
@@ -153,7 +154,7 @@ void main()
 											continue;
 										seen[index][parent.hash] = true;
 										if (seen.all!(s => parent.hash in s))
-											return parent;
+											return [parent];
 										newState ~= parent;
 									}
 								state = newState;
@@ -162,9 +163,9 @@ void main()
 						return null;
 					}
 
-					static Commit* commonParentOfMerge(Commit* merge) pure
+					static Commit*[] commonParentsOfMerge(Commit* merge) pure
 					{
-						return commonParent(merge.parents);
+						return commonParents(merge.parents);
 					}
 
 					static Commit*[] commitsBetween(Commit* child, Commit* grandParent) pure
@@ -200,11 +201,11 @@ void main()
 						throw new Exception("No path between commits");
 					}
 
-					auto grandParent = memoize!commonParentOfMerge(c);
-					if (grandParent)
+					auto grandParents = memoize!commonParentsOfMerge(c);
+					if (grandParents.length == 1)
 					{
 						bool[] hasMergeCommits = c.parents
-							.map!(parent => memoize!commitsBetween(parent, grandParent)
+							.map!(parent => memoize!commitsBetween(parent, grandParents[0])
 								.any!(commit => commit.message[0].startsWith("Merge pull request #"))
 							).array;
 
