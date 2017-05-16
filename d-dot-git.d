@@ -224,13 +224,27 @@ void main()
 						throw new Exception("No path between commits");
 					}
 
+					bool dbg = false; //c.hash.toString() == "9545447f8529cafab0fb2c51527541870db844b6";
 					auto grandParents = memoize!commonParentsOfMerge(c);
+					if (dbg) writeln(grandParents.map!(c => c.hash.toString));
 					if (grandParents.length == 1)
 					{
 						bool[] hasMergeCommits = c.parents
 							.map!(parent => memoize!commitsBetween(parent, grandParents[0])
 								.any!(commit => commit.message[0].startsWith("Merge pull request #"))
 							).array;
+
+						if (dbg)
+						{
+							writefln("%d %s", hasMergeCommits.sum, subject);
+							foreach (parent; c.parents)
+							{
+								writeln("---------------------");
+								foreach (cm; memoize!commitsBetween(parent, grandParents[0]))
+									writefln("%s %s", cm.hash.toString(), cm.message[0]);
+								writeln("---------------------");
+							}
+						}
 
 						if (hasMergeCommits.sum == 1)
 							c = c.parents[hasMergeCommits.indexOf(true)];
