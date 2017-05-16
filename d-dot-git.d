@@ -320,7 +320,7 @@ void main()
 					size_t p;
 					while (p < messageLines.length && messageLines[p].length)
 						p++;
-					messageLines = messageLines[0..p] ~ ["", "https://github.com/D-Programming-Language/%s/pull/%s".format(m.repo, pullMatch.captures[1])] ~ messageLines[p..$];
+					messageLines = messageLines[0..p] ~ ["", "https://github.com/dlang/%s/pull/%s".format(m.repo, pullMatch.captures[1])] ~ messageLines[p..$];
 				}
 			}
 
@@ -340,7 +340,7 @@ void main()
 			{
 				f.writefln("[submodule \"%s\"]", name);
 				f.writefln("\tpath = %s", name);
-				f.writefln("\turl = git://github.com/D-Programming-Language/%s", name);
+				f.writefln("\turl = git://github.com/dlang/%s", name);
 			}
 			f.writeln("DELIMITER");
 			f.writeln();
