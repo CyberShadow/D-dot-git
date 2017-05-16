@@ -215,7 +215,7 @@ void main()
 
 								if (parent is grandParent)
 								{
-									const(Commit)*[] path = [grandParent];
+									const(Commit)*[] path;
 									while (commit)
 									{
 										path ~= commit;
