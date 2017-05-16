@@ -137,7 +137,7 @@ void main()
 					// Approximately equivalent to git-merge-base
 					static Commit*[] commonParents(Commit*[] commits) pure
 					{
-						bool[Hash][] seen;
+						bool[Commit*][] seen;
 						seen.length = commits.length;
 
 						Commit*[][] states = commits.map!(commit => [commit]).array;
@@ -150,10 +150,10 @@ void main()
 								foreach (commit; state)
 									foreach (parent; commit.parents)
 									{
-										if (parent.hash in seen[index])
+										if (parent in seen[index])
 											continue;
-										seen[index][parent.hash] = true;
-										if (seen.all!(s => parent.hash in s))
+										seen[index][parent] = true;
+										if (seen.all!(s => parent in s))
 											return [parent];
 										newState ~= parent;
 									}
