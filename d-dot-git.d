@@ -148,6 +148,7 @@ void main()
 				else
 				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/"))
 				{
+					subject = subject.chomp(" into merge_" ~ branchName);
 					bool ourBranch = subject == branchName ~ "'";
 					c = c.parents[ourBranch ? 1 : 0];
 				}
