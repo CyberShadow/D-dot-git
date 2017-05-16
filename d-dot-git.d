@@ -5,6 +5,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.file;
+import std.functional;
 import std.path;
 import std.process;
 import std.range;
@@ -13,6 +14,7 @@ import std.stdio;
 import std.string;
 import std.parallelism;
 
+import ae.utils.array;
 import ae.utils.regex;
 
 import repo;
@@ -78,8 +80,6 @@ void main()
 		f = pipes.stdin;
 	}
 
-	auto reReverseMerge = regex(`^Merge branch 'master' of github`);
-
 	int currentMark = 0;
 
 	foreach (refName, refHashes; refs)
@@ -118,10 +118,103 @@ void main()
 			do
 			{
 				merges ~= Merge(repoName, c);
-				if (c.message.length && c.message[0].match(reReverseMerge))
+				if (c.message.length && c.message[0].startsWith("Merge branch 'master' of github"))
 				{
 					enforce(c.parents.length == 2);
 					c = c.parents[1];
+				}
+				else
+				if (c.parents.length == 2 && c.message[0].startsWith("Merge pull request #"))
+					c = c.parents[0];
+				else
+				if (c.parents.length == 2 && c.message[0] == "Merge remote-tracking branch 'upstream/master' into " ~ refName.split("/")[$-1])
+					c = c.parents[0];
+				else
+				if (c.parents.length > 1)
+				{
+					enforce(c.parents.length == 2, "Octopus merge");
+
+					static Commit* commonParent(Commit*[] commits) pure
+					{
+						bool[Hash][] seen;
+						seen.length = commits.length;
+
+						Commit*[][] states = commits.map!(commit => [commit]).array;
+
+						while (states.any!(state => !state.empty))
+						{
+							foreach (index, ref state; states)
+							{
+								Commit*[] newState;
+								foreach (commit; state)
+									foreach (parent; commit.parents)
+									{
+										if (parent.hash in seen[index])
+											continue;
+										seen[index][parent.hash] = true;
+										if (seen.all!(s => parent.hash in s))
+											return parent;
+										newState ~= parent;
+									}
+								state = newState;
+							}
+						}
+						return null;
+					}
+
+					static Commit* commonParentOfMerge(Commit* merge) pure
+					{
+						return commonParent(merge.parents);
+					}
+
+					static Commit*[] commitsBetween(Commit* child, Commit* grandParent) pure
+					{
+						Commit*[] queue = [child];
+						Commit*[Hash] seen;
+
+						while (queue.length)
+						{
+							auto commit = queue[0];
+							queue = queue[1..$];
+							foreach (parent; commit.parents)
+							{
+								if (parent.hash in seen)
+									continue;
+								seen[parent.hash] = commit;
+
+								if (parent is grandParent)
+								{
+									auto path = [grandParent];
+									while (commit)
+									{
+										path ~= commit;
+										commit = seen.get(commit.hash, null);
+									}
+									path.reverse();
+									return path;
+								}
+
+								queue ~= parent;
+							}
+						}
+						throw new Exception("No path between commits");
+					}
+
+					auto grandParent = memoize!commonParentOfMerge(c);
+					if (grandParent)
+					{
+						bool[] hasMergeCommits = c.parents
+							.map!(parent => memoize!commitsBetween(parent, grandParent)
+								.any!(commit => commit.message[0].startsWith("Merge pull request #"))
+							).array;
+
+						if (hasMergeCommits.sum == 1)
+							c = c.parents[hasMergeCommits.indexOf(true)];
+						else
+							c = c.parents[0];
+					}
+					else
+						c = c.parents[0];
 				}
 				else
 					c = c.parents.length ? c.parents[0] : null;
