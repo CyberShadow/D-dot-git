@@ -138,7 +138,7 @@ Hash toCommitHash(string hash)
 	return result;
 }
 
-char[40] toString(ref Hash hash)
+char[40] toString(in ref Hash hash)
 {
 	//return format("%(%02x%)", hash[]);
 	char[40] result;
