@@ -132,6 +132,12 @@ void main()
 				if (c.parents.length == 2 && subject == "Merge remote-tracking branch 'upstream/master' into " ~ refName.split("/")[$-1])
 					c = c.parents[0];
 				else
+				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/"))
+				{
+					bool ourBranch = subject == refName.split("/")[$-1] ~ "'";
+					c = c.parents[ourBranch ? 1 : 0];
+				}
+				else
 				if (c.parents.length > 1)
 				{
 					enforce(c.parents.length == 2, "Octopus merge");
