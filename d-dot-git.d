@@ -13,6 +13,7 @@ import std.regex;
 import std.stdio;
 import std.string;
 import std.parallelism;
+import std.typecons;
 
 import ae.utils.array;
 import ae.utils.regex;
@@ -135,43 +136,65 @@ void main()
 					enforce(c.parents.length == 2, "Octopus merge");
 
 					// Approximately equivalent to git-merge-base
-					static Commit*[] commonParents(Commit*[] commits) pure
+					static const(Commit)*[] commonParents(in Commit*[] commits) pure
 					{
 						bool[Commit*][] seen;
 						seen.length = commits.length;
 
-						Commit*[][] states = commits.map!(commit => [commit]).array;
-
-						while (states.any!(state => !state.empty))
+						foreach (index, parentCommit; commits)
 						{
-							foreach (index, ref state; states)
+							auto queue = [parentCommit];
+							while (!queue.empty)
 							{
-								Commit*[] newState;
-								foreach (commit; state)
-									foreach (parent; commit.parents)
-									{
-										if (parent in seen[index])
-											continue;
-										seen[index][parent] = true;
-										if (seen.all!(s => parent in s))
-											return [parent];
-										newState ~= parent;
-									}
-								state = newState;
+								auto commit = queue.front;
+								queue.popFront;
+								foreach (parent; commit.parents)
+								{
+									if (parent in seen[index])
+										continue;
+									seen[index][parent] = true;
+									queue ~= parent;
+								}
 							}
 						}
-						return null;
+
+						bool[Commit*] commonParents =
+							seen[0]
+							.byKey
+							.filter!(commit => seen.all!(s => commit in s))
+							.map!(commit => tuple(commit, true))
+							.assocArray;
+
+						foreach (parent; commonParents.keys)
+						{
+							if (parent !in commonParents)
+								continue; // already removed
+
+							auto queue = parent.parents[];
+							while (!queue.empty)
+							{
+								auto commit = queue.front;
+								queue.popFront;
+								if (commit in commonParents)
+								{
+									commonParents.remove(commit);
+									queue ~= commit.parents;
+								}
+							}
+						}
+
+						return commonParents.keys;
 					}
 
-					static Commit*[] commonParentsOfMerge(Commit* merge) pure
+					static const(Commit)*[] commonParentsOfMerge(Commit* merge) pure
 					{
 						return commonParents(merge.parents);
 					}
 
-					static Commit*[] commitsBetween(Commit* child, Commit* grandParent) pure
+					static const(Commit)*[] commitsBetween(in Commit* child, in Commit* grandParent) pure
 					{
-						Commit*[] queue = [child];
-						Commit*[Hash] seen;
+						const(Commit)*[] queue = [child];
+						const(Commit)*[Hash] seen;
 
 						while (queue.length)
 						{
@@ -185,7 +208,7 @@ void main()
 
 								if (parent is grandParent)
 								{
-									auto path = [grandParent];
+									const(Commit)*[] path = [grandParent];
 									while (commit)
 									{
 										path ~= commit;
