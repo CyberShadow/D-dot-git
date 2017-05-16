@@ -114,6 +114,7 @@ void main()
 		foreach (repoName, refHash; refHashes)
 		{
 			auto history = histories[repoName];
+			auto branchName = refName.split("/")[$-1];
 			Merge[] merges;
 			Commit* c = history.commits[refHash];
 			do
@@ -131,13 +132,13 @@ void main()
 				else
 				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/master' into "))
 				{
-					bool ourBranch = subject == refName.split("/")[$-1];
+					bool ourBranch = subject == branchName;
 					c = c.parents[ourBranch ? 0 : 1];
 				}
 				else
 				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/"))
 				{
-					bool ourBranch = subject == refName.split("/")[$-1] ~ "'";
+					bool ourBranch = subject == branchName ~ "'";
 					c = c.parents[ourBranch ? 1 : 0];
 				}
 				else
