@@ -128,7 +128,17 @@ void main()
 				}
 				else
 				if (c.parents.length == 2 && subject.startsWith("Merge pull request #"))
-					c = c.parents[0];
+				{
+					if (subject.endsWith("/merge_" ~ branchName))
+					{
+						// We have lost our way and are on the wrong
+						// branch, but we can get back on our branch
+						// here
+						c = c.parents[1];
+					}
+					else
+						c = c.parents[0];
+				}
 				else
 				if (c.parents.length == 2 && subject.skipOver("Merge remote-tracking branch 'upstream/master' into "))
 				{
