@@ -16,15 +16,10 @@ void main()
 	{
 		bool[uint][string] sawPR;
 		{
-			string fn = format!"log-%s.txt"(branch);
-			static void getLog(string target, string branch)
-			{
-				auto pid = spawnProcess(["git", "log", "--pretty=format:%s", branch], stdin, File(target, "wb"), stderr, null, Config.none, "../../result");
-				enforce(pid.wait == 0, "git log failed");
-			}
-			cached!getLog(fn, branch);
+			auto result = execute(["git", "log", "--pretty=format:%s", branch], null, Config.none, size_t.max, "../../result");
+			enforce(result.status == 0, "git log failed");
 
-			foreach (line; fn.readText.splitLines())
+			foreach (line; result.output.splitLines())
 			{
 				line.matchCaptures(re!`^(\S+): Merge pull request #(\d+) from `,
 					(string component, uint pr) { sawPR[component][pr] = true; });
