@@ -119,16 +119,17 @@ void main()
 			do
 			{
 				merges ~= Merge(repoName, c);
-				if (c.message.length && c.message[0].startsWith("Merge branch 'master' of github"))
+				auto subject = c.message.length ? c.message[0] : null;
+				if (subject.startsWith("Merge branch 'master' of github"))
 				{
 					enforce(c.parents.length == 2);
 					c = c.parents[1];
 				}
 				else
-				if (c.parents.length == 2 && c.message[0].startsWith("Merge pull request #"))
+				if (c.parents.length == 2 && subject.startsWith("Merge pull request #"))
 					c = c.parents[0];
 				else
-				if (c.parents.length == 2 && c.message[0] == "Merge remote-tracking branch 'upstream/master' into " ~ refName.split("/")[$-1])
+				if (c.parents.length == 2 && subject == "Merge remote-tracking branch 'upstream/master' into " ~ refName.split("/")[$-1])
 					c = c.parents[0];
 				else
 				if (c.parents.length > 1)
