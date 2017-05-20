@@ -34,6 +34,6 @@ void main()
 void run()
 {
 	auto output = File("d-dot-git.log", "wb");
-	auto p = spawnProcess(absolutePath("d-dot-git"), stdin, output, output).wait();
+	auto p = spawnProcess(["timeout", "300", absolutePath("d-dot-git")], stdin, output, output).wait();
 	enforce(p == 0, "d-dot-git exited with status %d".format(p));
 }
