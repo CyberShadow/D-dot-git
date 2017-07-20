@@ -31,7 +31,7 @@ void main()
 	{
 		auto path = buildPath("repos", name);
 		if (!path.exists)
-			enforce(spawnProcess(["git", "clone", gitUrlRoot ~ name, path]).wait() == 0, "git clone failed");
+			enforce(spawnProcess(["git", "clone", "--mirror", gitUrlRoot ~ name, path]).wait() == 0, "git clone failed");
 		repos[name] = new Repository(path);
 	}
 
@@ -54,16 +54,16 @@ void main()
 		histories[repoName] = repo.getHistory();
 		foreach (name, hash; histories[repoName].refs)
 			if (name.startsWith("refs/heads/"))
-				continue;
-			else
-			if (name == "refs/remotes/origin/HEAD")
-				continue;
-			else
-			if (name.startsWith("refs/remotes/origin/"))
-				refs[name.replace("refs/remotes/origin/", "refs/heads/")][repoName] = hash;
+				refs[name][repoName] = hash;
 			else
 			if (name.startsWith("refs/tags/"))
 				refs[name.replace("^{}", "")][repoName] = hash;
+			else
+			if (name.startsWith("refs/pull/"))
+				continue;
+			else
+			if (name.startsWith("refs/remotes/"))
+				continue;
 			else
 				throw new Exception("Unknown ref kind: " ~ name);
 	}
