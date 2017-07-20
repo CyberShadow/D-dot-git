@@ -20,12 +20,19 @@ class Repository
 	this(string path)
 	{
 		enforce(path.exists, "Repository path does not exist");
+		this.path = path;
 		auto dotGit = path.buildPath(".git");
-		if (dotGit.exists && dotGit.isFile)
+		string[] workTreeArg = [`--work-tree=` ~ path];
+		if (!dotGit.exists && ["branches", "hooks", "info", "objects", "HEAD", "config"].all!(n => path.buildPath(n).exists)) // bare repository
+		{
+			dotGit = path;
+			workTreeArg = null;
+		}
+		else
+		if (dotGit.exists && dotGit.isFile) // submodule etc.
 			dotGit = path.buildPath(dotGit.readText().strip()[8..$]);
 		//path = path.replace(`\`, `/`);
-		this.path = path;
-		this.argsPrefix = [`git`, `--work-tree=` ~ path, `--git-dir=` ~ dotGit];
+		this.argsPrefix = [`git`] ~ workTreeArg ~ [`--git-dir=` ~ dotGit];
 	}
 
 	void gitRun(string[] args...)
