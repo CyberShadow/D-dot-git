@@ -27,7 +27,9 @@ void main()
 	foreach (de; dirEntries("repos", SpanMode.shallow))
 		repos[de.name.baseName] = new Repository(de.name);
 
-	debug {} else
+	debug
+		stderr.writeln("Not fetching in debug build.");
+	else
 	foreach (repo; repos.values.parallel)
 	{
 		stderr.writefln("Fetching %s...", repo.path);
@@ -360,7 +362,9 @@ void main()
 	enforce(status == 0, "git-fast-import failed with status %d".format(status));
 
 	repo.gitRun("reset", "--hard", "master");
-	debug {} else
+	debug
+		stderr.writeln("Not pushing in debug build.");
+	else
 	{
 		repo.gitRun("remote", "add", "origin", "ssh://git@bitbucket.org/cybershadow/d.git");
 		repo.gitRun("push", "--mirror", "origin");
