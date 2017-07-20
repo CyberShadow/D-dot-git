@@ -33,7 +33,7 @@ void main()
 	foreach (repo; repos.values.parallel)
 	{
 		stderr.writefln("Fetching %s...", repo.path);
-		repo.gitRun("fetch", "origin");
+		repo.gitRun("fetch", "--prune", "origin");
 		stderr.writefln("Done fetching %s.", repo.path);
 	}
 
