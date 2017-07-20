@@ -22,6 +22,7 @@ import repo;
 
 Repository[string] repos;
 
+enum gitUrlRoot = "https://github.com/dlang/";
 immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org"];
 
 void main()
@@ -29,6 +30,8 @@ void main()
 	foreach (name; repoNames)
 	{
 		auto path = buildPath("repos", name);
+		if (!path.exists)
+			enforce(spawnProcess(["git", "clone", gitUrlRoot ~ name, path]).wait() == 0, "git clone failed");
 		repos[name] = new Repository(path);
 	}
 
