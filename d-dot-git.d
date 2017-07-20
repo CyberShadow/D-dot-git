@@ -22,10 +22,15 @@ import repo;
 
 Repository[string] repos;
 
+immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org"];
+
 void main()
 {
-	foreach (de; dirEntries("repos", SpanMode.shallow))
-		repos[de.name.baseName] = new Repository(de.name);
+	foreach (name; repoNames)
+	{
+		auto path = buildPath("repos", name);
+		repos[name] = new Repository(path);
+	}
 
 	debug
 		stderr.writeln("Not fetching in debug build.");
