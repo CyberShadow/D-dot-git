@@ -6,6 +6,7 @@ import std.conv;
 import std.exception;
 import std.file;
 import std.functional;
+import std.getopt;
 import std.path;
 import std.process;
 import std.range;
@@ -25,8 +26,13 @@ Repository[string] repos;
 enum gitUrlRoot = "https://github.com/dlang/";
 immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org"];
 
-void main()
+void main(string[] args)
 {
+	bool pretend = false;
+	getopt(args,
+		"pretend", &pretend,
+	);
+
 	foreach (name; repoNames)
 	{
 		auto path = buildPath("repos", name);
@@ -79,7 +85,6 @@ void main()
 
 	auto repo = new Repository("result");
 
-	bool pretend = false;
 	File f;
 	ProcessPipes pipes;
 	if (pretend)
