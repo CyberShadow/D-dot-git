@@ -104,7 +104,6 @@ void main()
 			Commit* commit;
 		}
 		Merge[][string] repoMerges;
-		Commit*[string] tags;
 
 		// If a component doesn't have a branch, include their "master".
 		// The alternative would be to create a whole new history
