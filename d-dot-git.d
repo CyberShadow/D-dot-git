@@ -95,6 +95,8 @@ void main()
 
 	foreach (refName, refHashes; refs)
 	{
+		stderr.writefln("* %s", refName);
+
 		int[Hash[]] marks;
 		marks[null] = currentMark;
 
