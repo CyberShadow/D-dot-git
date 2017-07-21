@@ -124,7 +124,10 @@ void main()
 		foreach (repoName, refHash; refHashes)
 		{
 			auto history = histories[repoName];
-			auto branchName = refName.split("/")[$-1];
+			auto branchName =
+				refName.startsWith("refs/heads/") ? refName.split("/")[$-1] :
+				refName.startsWith("refs/tags/v") ? "stable" :
+				"master";
 			Merge[] merges;
 			Commit* c = history.commits[refHash];
 			do
