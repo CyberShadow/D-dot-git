@@ -3,6 +3,9 @@
 *.ilk
 *.pdb
 
+# D repositories
+/repos/
+
 # Binaries
 /d-dot-git
 /daemon

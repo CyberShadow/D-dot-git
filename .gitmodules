@@ -1,27 +1,3 @@
 [submodule "ae"]
 	path = ae
 	url = git://github.com/CyberShadow/ae.git
-[submodule "dlang.org"]
-	path = repos/dlang.org
-	url = https://github.com/D-Programming-Language/dlang.org
-	ignore = all
-[submodule "dmd"]
-	path = repos/dmd
-	url = https://github.com/D-Programming-Language/dmd
-	ignore = all
-[submodule "druntime"]
-	path = repos/druntime
-	url = https://github.com/D-Programming-Language/druntime
-	ignore = all
-[submodule "installer"]
-	path = repos/installer
-	url = https://github.com/D-Programming-Language/installer
-	ignore = all
-[submodule "phobos"]
-	path = repos/phobos
-	url = https://github.com/D-Programming-Language/phobos
-	ignore = all
-[submodule "tools"]
-	path = repos/tools
-	url = https://github.com/D-Programming-Language/tools
-	ignore = all
