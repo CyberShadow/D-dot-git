@@ -98,12 +98,18 @@ void main(string[] args)
 
 	int currentMark = 0;
 
+	struct Mark
+	{
+		Hash[] hashes;
+		int parent; // mark ID
+	}
+
+	int[Mark] marks;
+	marks[Mark.init] = currentMark;
+
 	foreach (refName, refHashes; refs)
 	{
 		stderr.writefln("* %s", refName);
-
-		int[Hash[]] marks;
-		marks[null] = currentMark;
 
 		static struct Merge
 		{
@@ -312,17 +318,21 @@ void main(string[] args)
 		f.writefln("reset %s", refName);
 
 		Hash[string] state;
+		int parentMark = marks[Mark.init]; // 0
+
 		foreach (m; allMerges)
 		{
-			auto parentMark = marks[state.values.sort().release];
 			state[m.repo] = m.commit.hash;
+			auto mark = Mark(state.values.sort().release, parentMark);
 
-			auto hashes = state.values.sort().release.assumeUnique();
-			if (hashes in marks)
+			if (auto pmark = mark in marks)
+			{
+				parentMark = *pmark;
 				continue;
+			}
 
 			currentMark++;
-			marks[hashes] = currentMark;
+			marks[mark] = currentMark;
 
 			f.writefln("commit %s", refName);
 			f.writefln("mark :%d", currentMark);
@@ -363,10 +373,12 @@ void main(string[] args)
 			}
 			f.writeln("DELIMITER");
 			f.writeln();
+
+			parentMark = currentMark;
 		}
 
 		f.writefln("reset %s", refName);
-		f.writefln("from :%d", marks[state.values.sort().release]);
+		f.writefln("from :%d", parentMark);
 
 		currentMark++; // force explicit "from" for new refs
 	}
