@@ -103,7 +103,7 @@ class Repository
 			if (line.startsWith("    "))
 				commit.message ~= line[4..$];
 			else
-			if (line.startsWith("gpgsig "))
+			if (line.startsWith("gpgsig ") || line.startsWith("mergetag "))
 				continue;
 			else
 			if (line.startsWith(" "))
