@@ -96,6 +96,15 @@ void main(string[] args)
 		f = pipes.stdin;
 	}
 
+	// Add fake refs to generate a version tag's history through
+	// the master branch (instead of the stable branch).  Useful
+	// when we want to bisect to find a change that occurred
+	// between two versions on the master branch.
+
+	foreach (refName; refs.keys)
+		if (refName.skipOver("refs/tags/v"))
+			refs["refs/tags-via-master/v" ~ refName] = refs["refs/tags/v" ~ refName].dup;
+
 	int currentMark = 0;
 
 	struct Mark
@@ -139,6 +148,7 @@ void main(string[] args)
 			auto branchName =
 				refName.startsWith("refs/heads/") ? refName.split("/")[$-1] :
 				refName.startsWith("refs/tags/v") ? "stable" :
+				refName.startsWith("refs/tags-via-master/v") ? "master" :
 				"master";
 			Merge[] merges;
 			Commit* c = history.commits[refHash];
