@@ -24,7 +24,7 @@ import repo;
 Repository[string] repos;
 
 enum gitUrlRoot = "https://github.com/dlang/";
-immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org"];
+immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org", "dub"];
 
 void main(string[] args)
 {
