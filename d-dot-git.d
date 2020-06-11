@@ -24,7 +24,8 @@ import repo;
 Repository[string] repos;
 
 enum gitUrlRoot = "https://github.com/dlang/";
-immutable repoNames = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org", "dub"];
+immutable coreRepos = ["dmd", "druntime", "phobos", "tools", "installer", "dlang.org"]; // Repositories which follow the D versioning convention
+immutable repoNames = coreRepos ~ ["dub"];
 
 void main(string[] args)
 {
@@ -60,10 +61,16 @@ void main(string[] args)
 		histories[repoName] = repo.getHistory();
 		foreach (name, hash; histories[repoName].refs)
 			if (name.startsWith("refs/heads/"))
-				refs[name][repoName] = hash;
+				if (name == "refs/heads/master" || coreRepos.canFind(repoName))
+					refs[name][repoName] = hash;
+				else
+					continue;
 			else
 			if (name.startsWith("refs/tags/"))
-				refs[name.replace("^{}", "")][repoName] = hash;
+				if (coreRepos.canFind(repoName))
+					refs[name.replace("^{}", "")][repoName] = hash;
+				else
+					continue;
 			else
 			if (name.startsWith("refs/pull/"))
 				continue;
