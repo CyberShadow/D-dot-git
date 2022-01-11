@@ -386,7 +386,7 @@ void main(string[] args)
 			{
 				f.writefln("[submodule \"%s\"]", name);
 				f.writefln("\tpath = %s", name);
-				f.writefln("\turl = git://github.com/dlang/%s", name);
+				f.writefln("\turl = https://github.com/dlang/%s", name);
 			}
 			f.writeln("DELIMITER");
 			f.writeln();
