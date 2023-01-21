@@ -61,10 +61,7 @@ void main(string[] args)
 		histories[repoName] = repo.getHistory();
 		foreach (name, hash; histories[repoName].refs)
 			if (name.startsWith("refs/heads/"))
-				if (name == "refs/heads/master" || coreRepos.canFind(repoName))
-					refs[name][repoName] = hash;
-				else
-					continue;
+				refs[name][repoName] = hash;
 			else
 			if (name.startsWith("refs/tags/"))
 				if (coreRepos.canFind(repoName))
